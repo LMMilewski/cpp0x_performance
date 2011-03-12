@@ -1,0 +1,238 @@
+# -*- org -*-
+
+* move semantics & rvalue reference
+** why
+   - Eliminate unnecessary expensive copies of user defined types (move semantics).
+   - Solve major usability problems with generic forwarding utilities (perfect forwarding).
+   - Solve usability problems in components where binding an rvalue to a non-const reference is not a logical error.
+** forwarding arguments
+   - in binder we want const lvalue references bind to both lvalue and
+     rvalue while a non-const lvalue reference should bind only to
+     non-const lvalue
+*** old binder (not practical when you have more arguments)
+template <class Operation>
+class binder2nd
+    : public unary_function<...>
+{
+    ...
+public:
+    ...
+    result_type operator()(const first_argument_type& x);
+    result_type operator()(      first_argument_type& x);
+};
+*** new binder (proposition)
+template <class Operation>
+class binder2nd
+    : public unary_function<...>
+{
+    ...
+public:
+    ...
+    result_type operator()(first_argument_type&& x);
+};
+** overload resolution
+** helper functions
+template <class T>
+struct identity
+{
+    typedef T type;
+};
+
+template <class T>
+inline
+T&&
+forward(typename identity<T>::type&& t)    // lvalue if T is an lvalue reference
+{
+    return t;
+}
+
+template <class T>
+inline
+typename remove_reference<T>::type&&
+move(T&& t)                             // always rvalue reference
+{
+    return t;
+}
+*** move always results in an rvalu reference
+*** forward results in an lvalue if T is lvalue reference
+** perfect forwarding
+template <class T, class A1, class A2>
+shared_ptr<T>
+factory(A1&& a1, A2&& a2)
+{
+    return shared_ptr<T>(new T(forward<A1>(a1),
+                               forward<A2>(a2)));
+}
+
+struct A
+{
+    A(int&, const double&);
+};
+
+int main()
+{
+    shared_ptr<A> sp1 = factory<A>(2, 1.414);  // does not compile
+    int i = 2;
+    shared_ptr<A> sp2 = factory<A>(i, 1.414);  // ok
+}
+** combine /w variadic templates
+*** std::vector::emplace_back instead of std::vector::push_back
+** move constructor
+   ClassName(ClassName&& src) {
+       // copy pointers from src to this
+       // set src pointers to null
+   }
+** move assignment operator
+   - protect against self assignment (as usually)
+   ClassName& operator= (ClassName&& src)...
+** tutorial
+   http://blogs.msdn.com/b/vcblog/archive/2009/02/03/rvalue-references-c-0x-features-in-vc10-part-2.aspx
+** vector does not have to copy all elements now when growing
+   also algos like random_shuffle, sort or remove_if can perform
+   better with move semantics
+** concatanating temporary strings can be optimized
+** rvalue streams
+*** what is the difference?
+    std::ofstream("Log file", std::ios::app) << "Log message\n";
+    std::ofstream("Log file", std::ios::app).flush() << "Log message\n";
+**** problem
+     operator<< wants lvalue stream argument
+**** solution
+template<class traits>
+basic_ostream<char,traits>&
+operator<<(basic_ostream<char,traits>&&, char);
+** shared_ptr
+   template<class T>
+   template<class Y, class D>
+   shared_ptr<T>::shared_ptr(Y* p, D d); // D constructor must not throw! (or there is a memory leak)
+*** solution 1
+    template<class T>
+    template<class Y, class D>
+    shared_ptr<T>::shared_ptr(Y* p, const D& d);
+
+    but this makes d(p) is allowed to require non-const d
+*** solution 2
+    template<class T>
+    template<class Y, class D>
+    shared_ptr<T>::shared_ptr(Y* p, D& d);
+
+    but will not work for rvalue d
+*** perfect solution
+    template<class T>
+    template<class Y, class D>
+    shared_ptr<T>::shared_ptr(Y* p, D&& d);
+** improved swap trick
+*** instead of
+    vector<A>().swap(v)
+*** you can write
+    v.swap(vector<A>())
+*** what would allow
+    swap(v, vector<A>())
+** about move performance
+   http://arcticinteractive.com/2008/11/29/brief-look-cpp0x-move-semantics-performance/
+** some problems
+   http://cpp-next.com/archive/2010/10/implicit-move-must-go/
+* constexpr
+** definition (value/function)
+   its function-body shall be a compound-statement of the form {
+   return expression; } where expression is a potential constant
+   expression (5.19);
+** limitations
+*** values
+   - defined constructor before usage
+   - empty function body of constructor
+   - all members initialized with constexprs
+   - trivial destructor
+   - should be copy-constexpr-able
+*** functions
+   - return type
+   - any member functions (including operators and constructors) can
+     be a constexpr
+   - all arguments should be constexpr
+   - function called should be constexpr
+   - loops are not allowed (?)
+** can't do endian check that way
+   constexpr bool little_endian() // DOES NOT WORK
+   {
+       const static unsigned num = 0xAABBCCDD;
+       return reinterpret_cast<const unsigned char*> (&num)[0] == 0xDD;
+   }
+*** because
+    The expression involves an lvalue-to-rvalue conversion of the
+array reference, which is banned from constant expressions unless it
+is applied to an lvalue of effective integral type that refers to a
+non-volatile const variable or static data member initialized with
+constant expressions
+** another way to check endian (does not work too)
+const union {
+    int int_value;
+    char char_value[4];
+} Endian = { 0xAABBCCDD };
+
+constexpr bool little_endian()
+{
+   return Endian[0] == 0xDD;
+}
+*** because
+    Placing a value in a union then accessing the union via another
+    member invokes undefined behaviour
+** max
+template< typename Type > constexpr Type max( Type a, Type b ) { return a < b ? b : a; } // not sure about that one (args must be constexpr?)
+** why?
+   can use numeric_limits<T>::max() as array size (if you have enough memory)
+** better sizeof
+template <typename T, size_t N>
+constexpr size_t size_of(T (&)[N]) {
+    return N;
+}
+** const can't be used for optimization because of possible const_cast
+** factorial
+*** old
+template<unsigned T>
+struct Fact {
+    enum Enum {
+        VALUE = Fact<T-1>*T;
+    };
+};
+
+template<>
+struct Fact<1u> {
+    enum Enum {
+        VALUE = 1;
+    };
+};
+*** new
+int fact(unsigned n) {
+    if (n==1) return 1;
+    return fact(n-1)*n;
+}
+* plain old data modifications
+** adding constructores does not affect layout / performance
+** producing object layouts compatible with C
+** trivial class/struct with standard layout
+*** trivial
+   - Has no nonstatic data members of type non-POD class/struct/union (or array of such types)
+   - Has a trivial default constructor. This may use the default constructor syntax (SomeConstructor() = default;).
+   - Has a trivial copy constructor, which may use the default syntax.
+   - Has a trivial copy assignment operator, which may use the default syntax.
+   - Has a trivial destructor, which must not be virtual.
+** what about private members?
+   draft says that all non-static members have *the same* access
+*** is this struct valid (?):
+    struct {
+        int x;
+    public:
+         int y;
+    public:
+         int z;
+    };
+
+    Note that draft gives permission for the relative positions of b
+    and c to be swapped (for classes/struct but what about PODs?)
+    http://groups.google.com/group/comp.lang.c++.moderated/browse_frm/thread/1f21a3731a645cab/3f68c6bedded3ce5
+** memcpy
+* simpler multithreading
+http://www.devx.com/SpecialReports/Article/38883/1954
+* alignment
+* unique_ptr
+** will not allow moving with memmove() etc. (I think there was such proposal)
