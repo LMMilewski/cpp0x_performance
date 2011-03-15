@@ -82,7 +82,9 @@
   see binding.cpp
 \end{frame}
 
-
+\begin{frame}{overload resolution}
+  rvalue\_ref\_resolution.cpp
+\end{frame}
 
 \subsection{performance improvements}
 \begin{frame}{std::vector::emplace\_back}
@@ -113,10 +115,6 @@
     \item second temporary string is constructed by stealing the memory owned by the first one
     \end{itemize}
   \end{block}
-\end{frame}
-
-\begin{frame}{move construction}
-
 \end{frame}
 
 \begin{frame}{RVO & NRVO vs move}
