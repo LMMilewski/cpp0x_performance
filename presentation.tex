@@ -83,7 +83,7 @@
 \end{frame}
 
 \begin{frame}{overload resolution}
-  rvalue\_ref\_resolution.cpp
+  see rvalue\_ref\_resolution.cpp
 \end{frame}
 
 \subsection{performance improvements}
@@ -122,6 +122,51 @@
 \end{frame}
 
 \subsection{usability improvements}
+\begin{frame}{forwarding arguments}
+  \begin{block}{binder problem}
+    \begin{itemize}
+    \item let's write std::binder2nd class
+    \item unbound paramters should behave identically to the corresponding parameters in the original function
+    \item const lvalue ref should bind to both lvalue and rvalue
+    \item non-const lvalue ref should bind to a non-const lvalue
+    \item non-const lvalue should refuse to bind to rvalues and const lvalues
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{forwarding arguments in C++03}
+\begin{verbatim}
+template <class Operation>
+class binder2nd
+    : public unary_function<...>
+{
+    ...
+public:
+    ...
+    result_type operator()(const first_argument_type& x);
+    result_type operator()(      first_argument_type& x);
+};
+\end{verbatim}
+\begin{block}{}
+  Unfortunately number of overloads grows exponentially with number of
+  parameters
+\end{block}
+\end{frame}
+
+\begin{frame}{forwarding arguments in C++0x}
+\begin{verbatim}
+template <class Operation>
+class binder2nd
+    : public unary_function<...>
+{
+    ...
+public:
+    ...
+    result_type operator()(first_argument_type&& x);
+};
+\end{verbatim}
+\end{frame}
+
 
 
 \section{constexpr}
