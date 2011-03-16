@@ -12,6 +12,9 @@ std::string lvalue = 0;
 
 const std::string const_lvalue = 0;
 
+void foo(std::string&& ) {
+}
+
 int main() {
     /// lvalue refs
 
@@ -32,12 +35,13 @@ int main() {
     // std::string&& rvalue_ref_1 = const_rvalue(); // error
     std::string&& rvalue_ref_2 = rvalue(); // ok
     // std::string&& rvalue_ref_3 = const_lvalue; // error
-    std::string&& rvalue_ref_4 = lvalue; // ok
+    // std::string&& rvalue_ref_4 = lvalue; // error
+    // foo(lvalue); // errro
 
     /// const rvalue refs
 
     const std::string&& const_rvalue_ref_1 = const_rvalue(); // ok
     const std::string&& const_rvalue_ref_2 = const_rvalue(); // ok
-    const std::string&& const_rvalue_ref_3 = const_lvalue; // ok
-    const std::string&& const_rvalue_ref_4 = lvalue; // ok
+    // const std::string&& const_rvalue_ref_3 = const_lvalue; // error
+    // const std::string&& const_rvalue_ref_4 = lvalue; // error
 }
