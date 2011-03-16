@@ -1,16 +1,16 @@
 #include <string>
 
 const std::string const_rvalue() {
-    return 0;
+    return "";
 }
 
 std::string rvalue() {
-    return 0;
+    return "";
 }
 
-std::string lvalue = 0;
+std::string lvalue = "";
 
-const std::string const_lvalue = 0;
+const std::string const_lvalue = "";
 
 void foo(std::string&& ) {
 }

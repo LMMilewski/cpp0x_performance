@@ -82,10 +82,79 @@
   see binding.cpp
 \end{frame}
 
+\begin{frame}{overload resolution}
+  see rvalue\_ref\_resolution.cpp
+\end{frame}
+
+\subsection{usability improvements}
+\begin{frame}{forwarding arguments}
+  \begin{block}{binder problem}
+    \begin{itemize}
+    \item let's write std::binder2nd class
+    \item unbound paramters should behave identically to the corresponding parameters in the original function
+    \item const lvalue ref should bind to both lvalue and rvalue
+    \item non-const lvalue ref should bind to a non-const lvalue
+    \item non-const lvalue should refuse to bind to rvalues and const lvalues
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{forwarding arguments in C++03}
+\begin{verbatim}
+template <class Operation>
+class binder2nd
+    : public unary_function<...>
+{
+    ...
+public:
+    ...
+    result_type operator()(const first_argument_type& x);
+    result_type operator()(      first_argument_type& x);
+};
+\end{verbatim}
+\begin{block}{}
+  Unfortunately number of overloads grows exponentially with number of
+  parameters
+\end{block}
+\end{frame}
+
+\begin{frame}{forwarding arguments in C++0x}
+\begin{verbatim}
+template <class Operation>
+class binder2nd
+    : public unary_function<...>
+{
+    ...
+public:
+    ...
+    result_type operator()(first_argument_type&& x);
+};
+\end{verbatim}
+\end{frame}
+
+\begin{frame}{move semantics}
+\begin{verbatim}
+template <class T>
+inline
+typename remove_reference<T>::type&&
+move(T&& t) {
+    return t;
+}
+\end{verbatim}
+\begin{block}
+  \begin{itemize}
+  \item for rvalue reference move returns rvalue reference
+  \item for lvalue reference move returns rvalue reference
+  \item lvalues are copied while rvalues are moved
+  \item std::move enforces moving instead of copying
+  \end{itemize}
+\end{block}
+  see move.cpp
+\end{frame}
 
 
 \subsection{performance improvements}
-\begin{frame}{std::vector::emplace\_back}
+\begin{frame}{when vector grows}
   \begin{block}{move object when vector grows}
     \begin{itemize}
     \item c++03 copies all objects in vector to new memory
@@ -115,15 +184,46 @@
   \end{block}
 \end{frame}
 
-\begin{frame}{move construction}
-
-\end{frame}
-
 \begin{frame}{RVO & NRVO vs move}
   see rvo.cpp
 \end{frame}
 
-\subsection{usability improvements}
+\begin{frame}{perfect forwarding}
+  \begin{block}{definition}
+    If 'foo' calls 'bar' forwarding arguments to it and the same bar
+    overload is selected as if bar was called directly then this is
+    called perfect forwarding.
+  \end{block}
+  \begin{block}{function templates}
+    If the type of a template function parameter is an rvalue
+    \begin{itemize}
+    \item reference collapsing
+    \item lvalue reference is deduced as lvalue reference
+    \item otherwise arameter will bind to rvalues
+    \item see perfect\_forwarding.cpp
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{std::forward}
+\begin{verbatim}
+template <class T>
+struct identity {
+    typedef T type;
+};
+
+template <class T>
+inline
+T&&
+forward(typename identity<T>::type&& t) {
+    return t;
+}
+\end{verbatim}
+\end{frame}
+
+\begin{frame}{std::vector::emplace\_back}
+
+\end{frame}
 
 
 \section{constexpr}
