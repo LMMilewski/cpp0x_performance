@@ -53,7 +53,7 @@ move(T&& t)                             // always rvalue reference
 {
     return t;
 }
-*** move always results in an rvalu reference
+*** move always results in an rvalue reference
 *** forward results in an lvalue if T is lvalue reference
 ** perfect forwarding
 template <class T, class A1, class A2>

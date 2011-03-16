@@ -86,41 +86,6 @@
   see rvalue\_ref\_resolution.cpp
 \end{frame}
 
-\subsection{performance improvements}
-\begin{frame}{std::vector::emplace\_back}
-  \begin{block}{move object when vector grows}
-    \begin{itemize}
-    \item c++03 copies all objects in vector to new memory
-    \item why do that if these objects are about to be destroyed?
-    \item c++0x moves all objects in vector to new memory
-    \end{itemize}
-  \end{block}
-\end{frame}
-
-\begin{frame}{string concatanation}
-  std::string tmp = std::string("ala") + " " + "ma" + " " + "kota" + "!";
-  \begin{block}{c++03}
-    \begin{itemize}
-    \item every call to operator+ returns a temporary object
-    \item a lot of copying
-    \item a lot of dynamic memory allocation
-    \item no COW
-    \item small strings optimization applies only for small strings
-    \end{itemize}
-  \end{block}
-
-  \begin{block}{c++0x}
-    \begin{itemize}
-    \item every call to operator+ returns a temporary object
-    \item second temporary string is constructed by stealing the memory owned by the first one
-    \end{itemize}
-  \end{block}
-\end{frame}
-
-\begin{frame}{RVO & NRVO vs move}
-  see rvo.cpp
-\end{frame}
-
 \subsection{usability improvements}
 \begin{frame}{forwarding arguments}
   \begin{block}{binder problem}
@@ -167,6 +132,76 @@ public:
 \end{verbatim}
 \end{frame}
 
+\begin{frame}{move semantics}
+\begin{verbatim}
+template <class T>
+inline
+typename remove_reference<T>::type&&
+move(T&& t) {
+    return t;
+}
+\end{verbatim}
+\begin{block}
+  \begin{itemize}
+  \item for rvalue reference move returns rvalue reference
+  \item for lvalue reference move returns rvalue reference
+  \item lvalues are copied while rvalues are moved
+  \item std::move enforces moving instead of copying
+  \end{itemize}
+\end{block}
+  see move.cpp
+\end{frame}
+
+
+\subsection{performance improvements}
+\begin{frame}{when vector grows}
+  \begin{block}{move object when vector grows}
+    \begin{itemize}
+    \item c++03 copies all objects in vector to new memory
+    \item why do that if these objects are about to be destroyed?
+    \item c++0x moves all objects in vector to new memory
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{string concatanation}
+  std::string tmp = std::string("ala") + " " + "ma" + " " + "kota" + "!";
+  \begin{block}{c++03}
+    \begin{itemize}
+    \item every call to operator+ returns a temporary object
+    \item a lot of copying
+    \item a lot of dynamic memory allocation
+    \item no COW
+    \item small strings optimization applies only for small strings
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{c++0x}
+    \begin{itemize}
+    \item every call to operator+ returns a temporary object
+    \item second temporary string is constructed by stealing the memory owned by the first one
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{RVO & NRVO vs move}
+  see rvo.cpp
+\end{frame}
+
+\begin{frame}{perfect forwarding}
+  \begin{block}{function templates}
+    If the type of a template function parameter is an rvalue
+    \begin{itemize}
+    \item lvalue is deduced as lvalue
+    \item rvalue otherwise
+    \item see perfect\_forwarding.cpp
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{std::vector::emplace\_back}
+
+\end{frame}
 
 
 \section{constexpr}
