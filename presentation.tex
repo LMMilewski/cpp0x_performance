@@ -152,6 +152,19 @@ move(T&& t) {
   see move.cpp
 \end{frame}
 
+\begin{frame}{swap trick}
+  \begin{block}{c++03 version}
+    vector<A>().swap(v);
+  \end{block}
+
+  \begin{block}{c++0x version}
+    v.swap(vector<A>());
+  \end{block}
+
+  \begin{block}{c++0x version}
+    swap(v, vector<A>());
+  \end{block}
+\end{frame}
 
 \subsection{performance improvements}
 \begin{frame}{when vector grows}
@@ -221,10 +234,78 @@ forward(typename identity<T>::type&& t) {
 \end{verbatim}
 \end{frame}
 
-\begin{frame}{std::vector::emplace\_back}
+\begin{frame}{variadic templates and std::vector::emplace\_back}
+  \begin{block}{example}
+\begin{verbatim}
+#include <string>
+#include <vector>
 
+struct A {
+public:
+    explicit A(int, const std::string&) {
+    }
+};
+
+int main() {
+    std::vector<A> v;
+    v.emplace_back(5, "hello");
+}
+\end{verbatim}
+  \end{block}
 \end{frame}
 
+\begin{frame}
+  \begin{block}{implementation}
+\begin{verbatim}
+#include <iostream>
+#include <string>
+#include <vector>
+
+struct A {
+public:
+    explicit A(int x, const std::string& str) {
+        std::cout << "A(" << x << ", " << str << ")\n";
+    }
+};
+
+template <typename... Args>
+A create_a(Args&&... args) {
+    return A(std::forward<Args>(args)...);
+}
+
+int main() {
+    A a = create_a(1, "hello");
+}
+\end{verbatim}
+  \end{block}
+\end{frame}
+
+\subsection{}
+\begin{frame}{invariants}
+  sea invariant\_problem.cpp
+  #define _GLIBCXX_DEBUG
+#include <iostream>
+#include <vector>
+struct X
+{
+    // invariant: v.size() == 5
+    X() : v(5) {}
+ 
+    ~X()
+    {
+        std::cout << v[0] << std::endl;
+    }
+ 
+ private:    
+    std::vector<int> v;
+};
+ 
+int main()
+{
+    std::vector<X> y;
+    y.push_back(X()); // X() rvalue: copied in C++03, moved in C++0x
+}
+\end{frame}
 
 \section{constexpr}
 \section{POD modifications}

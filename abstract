@@ -75,8 +75,6 @@ int main()
     int i = 2;
     shared_ptr<A> sp2 = factory<A>(i, 1.414);  // ok
 }
-** combine /w variadic templates
-*** std::vector::emplace_back instead of std::vector::push_back
 ** move constructor
    ClassName(ClassName&& src) {
        // copy pointers from src to this
@@ -91,16 +89,6 @@ int main()
    also algos like random_shuffle, sort or remove_if can perform
    better with move semantics
 ** concatanating temporary strings can be optimized
-** rvalue streams
-*** what is the difference?
-    std::ofstream("Log file", std::ios::app) << "Log message\n";
-    std::ofstream("Log file", std::ios::app).flush() << "Log message\n";
-**** problem
-     operator<< wants lvalue stream argument
-**** solution
-template<class traits>
-basic_ostream<char,traits>&
-operator<<(basic_ostream<char,traits>&&, char);
 ** shared_ptr
    template<class T>
    template<class Y, class D>
@@ -121,6 +109,10 @@ operator<<(basic_ostream<char,traits>&&, char);
     template<class T>
     template<class Y, class D>
     shared_ptr<T>::shared_ptr(Y* p, D&& d);
+** about move performance
+   http://arcticinteractive.com/2008/11/29/brief-look-cpp0x-move-semantics-performance/
+** combine /w variadic templates
+*** std::vector::emplace_back instead of std::vector::push_back
 ** improved swap trick
 *** instead of
     vector<A>().swap(v)
@@ -128,8 +120,6 @@ operator<<(basic_ostream<char,traits>&&, char);
     v.swap(vector<A>())
 *** what would allow
     swap(v, vector<A>())
-** about move performance
-   http://arcticinteractive.com/2008/11/29/brief-look-cpp0x-move-semantics-performance/
 ** some problems
    http://cpp-next.com/archive/2010/10/implicit-move-must-go/
 * constexpr
