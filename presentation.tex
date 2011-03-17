@@ -328,6 +328,7 @@ int main() {
     \item can use numeric\_limits<T>::max() as array size
     \item easier metaprogramming (i.e. fib function)
     \item speed
+    \item helps with threads (more on this later)
     \end{itemize}
   \end{block}
 \end{frame}
@@ -483,6 +484,119 @@ int fact(unsigned n) {
   \end{block}
 \end{frame}
 
+\section{multithreading}
+\begin{frame}{introduction}
+  \begin{block}{}
+    Threads are obviously realted to performance
+  \end{block}
+
+  \begin{block}{c++03 - libraries for multithreading}
+    \begin{itemize}
+    \item pthread
+    \item boost::thread
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{c++0x - built in support}
+    \begin{itemize}
+    \item all compiler have to comform to the same memory model
+    \item all compiler must provide the same facilities for multi-threading
+    \item easier porting
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{running thread}
+\begin{block}{}
+\begin{verbatim}
+struct MyThread {
+   void operator()() {
+   }
+};
+
+MyThread job;
+std::thread t(job); // makes a COPY of job
+std::thread t(std::ref(job));
+
+// ----
+
+void job(std::string s, double y, std::vector<int> vec);
+std::thread t(job, "hello", 42, std::vector<int>(1, 5)); // arguments are COPIED
+
+\end{verbatim}
+\end{block}
+\end{frame}
+
+\begin{frame}{joining thread}
+\begin{block}{}
+\begin{verbatim}
+t.join();
+t.detach();
+
+\end{verbatim}
+\end{block}
+\end{frame}
+
+\begin{frame}{mutexes and guards}
+  \begin{block}{mutexes}
+    \begin{itemize}
+    \item std::mutex
+    \item std::recursive\_mutex
+    \item std::timed\_mutex
+    \item std::recursive\_timed\_mutex
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{guards}
+    \begin{itemize}
+    \item std::lock\_guard
+    \item std::unique\_lock
+    \item std::lock
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{unique\_lock}
+    \begin{itemize}
+    \item deferred locking
+    \item trying to lock
+    \item trying to lock with a timeout
+    \item unlocking before the object is destroyed
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{initialization}
+  \begin{block}{}
+    \begin{itemize}
+    \item constexpr constructor is initialized before any code is run
+      as part of the static initialization phase.
+    \item static variable at block scope is atomic
+    \item std::call\_once + std::once\_flag
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{condition variables}
+\begin{block}{}
+\begin{verbatim}
+   void foo() {
+       std::unique_lock<std::mutex> lk(m);
+       cond.wait(lk, []{ return data_redy; });
+   }
+
+\end{verbatim}
+\end{block}
+\end{frame}
+
+\begin{frame}{thread local data}
+  \begin{block}{}
+\begin{verbatim}
+  thread_local std::vector<int> v;
+
+\end{verbatim}
+  \end{block}
+\end{frame}
+
 \section{POD modifications}
 \begin{frame}{why so important?}
   \begin{itemize}
@@ -523,7 +637,7 @@ int fact(unsigned n) {
 \end{frame}
 
 \begin{frame}{the problem (?)}
-  \begin{block}
+  \begin{block}{}
 \begin{verbatim}
   struct {
     public: int x;
@@ -534,9 +648,5 @@ int fact(unsigned n) {
 \end{verbatim}
   \end{block}
 \end{frame}
-
-\section{multithreading}
-\section{alignment}
-\section{unique\_ptr}
 
 \end{document}
