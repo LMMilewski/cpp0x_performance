@@ -303,6 +303,16 @@ int main() {
   \end{block}
 \end{frame}
 
+\begin{frame}{why?}
+  \begin{block}
+    \begin{itemize}
+    \item can use numeric\_limits<T>::max() as array size
+    \item easier metaprogramming (i.e. fib function)
+    \item speed
+    \end{itemize}
+  \end{block}
+\end{frame}
+
 \begin{frame}{examples}
   \begin{block}
 \begin{verbatim}
@@ -355,21 +365,97 @@ extern constexpr int memsz;   // error: not a definition
 
 \subsection{limitations}
 \begin{frame}{endian check}
+  \begin{block}{little\_endian}
+\begin{verbatim}
+  constexpr bool little_endian()
+  {
+    const static unsigned num = 0xAABBCCDD;
+    return reinterpret_cast<const unsigned char*> (&num)[0] == 0xDD;
+  }
+\end{verbatim}
+An expression is a potential constant expression if it is a constant
+expression when all occurances of function parameters are replaced by
+arbitrary constant expressions of the appropriate type.
+
+However &num would be an adress
+  \end{block}
+\end{frame}
+
+\begin{frame}{endian check}
+  \begin{block}{little\_endian}
+\begin{verbatim}
+const union {
+    int int_value;
+    char char_value[4];
+} Endian = { 0xAABBCCDD };
+
+constexpr bool little_endian()
+{
+   return Endian[0] == 0xDD;
+}
+
+\end{verbatim}
+Placing a value in a union then accessing the union via another
+member invokes undefined behaviour
+  \end{block}
 \end{frame}
 
 \subsection{examples}
 \begin{frame}{max}
+\begin{verbatim}
+  template< typename Type > constexpr Type max( Type a, Type b ) { return a < b ? b : a; }
+\end{verbatim}
 \end{frame}
 
-\begin{frame}{sizeof}
+\begin{frame}{better sizeof}
+  \begin{block}{}
+\begin{verbatim}
+template <typename T, size_t N>
+constexpr size_t size_of(T (&)[N]) {
+    return N;
+}
+\end{verbatim}
+  \end{block}
 \end{frame}
 
 \subsection{constexpr vs const}
 \begin{frame}{optimization}
+  \begin{block}{}
+    \begin{itemize}
+    \item Const can't be used for optimization because of possible const\_cast
+    \item I'm not sure about that one
+    \end{itemize}
+  \end{block}
 \end{frame}
 
-\subsection{metaprogramming}
+\subsection{easier metaprogramming}
 \begin{frame}{factorial}
+  \begin{block}{}
+\begin{verbatim}
+template<unsigned T>
+struct Fact {
+    enum Enum {
+        VALUE = Fact<T-1>*T;
+    };
+};
+
+template<>
+struct Fact<1u> {
+    enum Enum {
+        VALUE = 1;
+    };
+};
+\end{verbatim}
+  \end{block}
+
+  \begin{block}{}
+\begin{verbatim}
+int fact(unsigned n) {
+    if (n==1) return 1;
+    return fact(n-1)*n;
+}
+\end{verbatim}
+  \end{block}
 \end{frame}
 
 \section{POD modifications}
