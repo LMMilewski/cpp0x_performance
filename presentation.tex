@@ -63,9 +63,9 @@
 \begin{frame}
   \begin{block}{rvalue reference}
     \begin{itemize}
-    \item T& - lvalue reference
-    \item T&& - rvalue reference
-    \item const T&&
+    \item T\& - lvalue reference
+    \item T\&\& - rvalue reference
+    \item const T\&\&
     \item binds to lvalues and rvalues
     \item binds to rvalue even if not const qualified
     \end{itemize}
@@ -108,9 +108,10 @@ class binder2nd
     ...
 public:
     ...
-    result_type operator()(const first_argument_type& x);
-    result_type operator()(      first_argument_type& x);
+    result_type operator()(const first_argument_type\& x);
+    result_type operator()(      first_argument_type\& x);
 };
+
 \end{verbatim}
 \begin{block}{}
   Unfortunately number of overloads grows exponentially with number of
@@ -119,6 +120,7 @@ public:
 \end{frame}
 
 \begin{frame}{forwarding arguments in C++0x}
+  \begin{block}{}
 \begin{verbatim}
 template <class Operation>
 class binder2nd
@@ -127,21 +129,26 @@ class binder2nd
     ...
 public:
     ...
-    result_type operator()(first_argument_type&& x);
+    result_type operator()(first_argument_type\&\& x);
 };
+
 \end{verbatim}
+  \end{block}
 \end{frame}
 
 \begin{frame}{move semantics}
+\begin{block}{}
 \begin{verbatim}
 template <class T>
 inline
-typename remove_reference<T>::type&&
-move(T&& t) {
-    return t;
+typename remove_reference<T>::type\&\&
+move(T\&\& t) {
+  return t;
 }
+
 \end{verbatim}
-\begin{block}
+\end{block}
+\begin{block}{}
   \begin{itemize}
   \item for rvalue reference move returns rvalue reference
   \item for lvalue reference move returns rvalue reference
@@ -152,6 +159,19 @@ move(T&& t) {
   see move.cpp
 \end{frame}
 
+\begin{frame}{swap trick}
+  \begin{block}{c++03 version}
+    vector<A>().swap(v);
+  \end{block}
+
+  \begin{block}{c++0x version}
+    v.swap(vector<A>());
+  \end{block}
+
+  \begin{block}{c++0x version}
+    swap(v, vector<A>());
+  \end{block}
+\end{frame}
 
 \subsection{performance improvements}
 \begin{frame}{when vector grows}
@@ -184,7 +204,7 @@ move(T&& t) {
   \end{block}
 \end{frame}
 
-\begin{frame}{RVO & NRVO vs move}
+\begin{frame}{RVO \& NRVO vs move}
   see rvo.cpp
 \end{frame}
 
@@ -206,6 +226,7 @@ move(T&& t) {
 \end{frame}
 
 \begin{frame}{std::forward}
+  \begin{block}{}
 \begin{verbatim}
 template <class T>
 struct identity {
@@ -214,19 +235,247 @@ struct identity {
 
 template <class T>
 inline
-T&&
-forward(typename identity<T>::type&& t) {
+T\&\&
+forward(typename identity<T>::type\&\& t) {
     return t;
 }
+
+\end{verbatim}
+  \end{block}
+\end{frame}
+
+\begin{frame}{variadic templates and std::vector::emplace\_back}
+  \begin{block}{example}
+\begin{verbatim}
+#include <string>
+#include <vector>
+
+struct A {
+public:
+    explicit A(int, const std::string\&) {
+    }
+};
+
+int main() {
+    std::vector<A> v;
+    v.emplace_back(5, "hello");
+}
+
+\end{verbatim}
+  \end{block}
+\end{frame}
+
+\begin{frame}
+  \begin{block}{implementation}
+\begin{verbatim}
+#include <iostream>
+#include <string>
+#include <vector>
+
+struct A {
+public:
+    explicit A(int x, const std::string\& str) {
+        std::cout << "A(" << x << ", " << str << ")\n";
+    }
+};
+
+template <typename... Args>
+A create_a(Args\&\&... args) {
+    return A(std::forward<Args>(args)...);
+}
+
+int main() {
+    A a = create_a(1, "hello");
+}
+
+\end{verbatim}
+  \end{block}
+\end{frame}
+
+\subsection{problems}
+\begin{frame}{invariants}
+  sea invariant\_problem.cpp
+\end{frame}
+
+\section{constexpr}
+\subsection{definition}
+\begin{frame}{c++0x 7.1.5}
+  \begin{block}{}
+    \begin{itemize}
+    \item applied to definition of an object, declaration of a
+      function or function template, or declaration of a static data
+      member of literal type
+    \item specialization can differ from template declaration with
+      respect to the constexpr specifier
+    \item function parameters can not be declared constexpr
+    \item constexpr functions/constructors are inline
+    \item call to constexpr function produces the same result as call
+      to an eqivalent non-constexpr function
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{why?}
+  \begin{block}{}
+    \begin{itemize}
+    \item can use numeric\_limits<T>::max() as array size
+    \item easier metaprogramming (i.e. fib function)
+    \item speed
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{examples}
+  \begin{block}{}
+\begin{verbatim}
+constexpr int square(int x); // OK: declaration
+constexpr int bufsz = 1024;  // OK: definition
+constexpr struct pixel {     // error: pixel is a type
+    int x;
+    int y;
+    constexpr pixel(int);         // OK: declaration
+};
+constexpr pixel::pixel(int a) // OK: definition
+    : x(square(a)), y(square(a))
+    { }
+constexpr pixel small(2);     // error: square not defined, so small(2)
+                              // not constant (5.19) so constexpr not satisfied
+
+constexpr int square(int x) { // OK: definition
+    return x * x;
+}
+constexpr pixel large(4);     // OK: square defined
+int next(constexpr int x) {   // error: not for parameters
+    return x + 1;
+}
+extern constexpr int memsz;   // error: not a definition
+
+\end{verbatim}
+  \end{block}
+\end{frame}
+
+\begin{frame}{constexpr constraints}
+  \begin{block}{function}
+    \begin{itemize}
+    \item not virtual
+    \item literal return type / reference to literal type
+    \item parameters of literal types / references to literal types
+    \item function body of form { return expression ; }
+    \item only conversions allowed in constant expressions
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{constructor}
+    \begin{itemize}
+    \item parameters of literal type / reference to literal type
+    \item no try block
+    \item every non-static data member and base class sub-object shall be initialized
+    \item every constructor involved in initializing shall be a constexpr constructor
+    \item all conversions should be allowed for constant expressions
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\subsection{limitations}
+\begin{frame}{endian check}
+  \begin{block}{little\_endian}
+\begin{verbatim}
+  constexpr bool little_endian()
+  {
+    const static unsigned num = 0xAABBCCDD;
+    return reinterpret_cast<const unsigned char*> (\&num)[0] == 0xDD;
+  }
+
+\end{verbatim}
+An expression is a potential constant expression if it is a constant
+expression when all occurances of function parameters are replaced by
+arbitrary constant expressions of the appropriate type.
+
+However \&num would be an adress
+  \end{block}
+\end{frame}
+
+\begin{frame}{endian check}
+  \begin{block}{little\_endian}
+\begin{verbatim}
+const union {
+    int int_value;
+    char char_value[4];
+} Endian = { 0xAABBCCDD };
+
+constexpr bool little_endian()
+{
+   return Endian[0] == 0xDD;
+}
+
+\end{verbatim}
+Placing a value in a union then accessing the union via another
+member invokes undefined behaviour
+  \end{block}
+\end{frame}
+
+\subsection{examples}
+\begin{frame}{max}
+\begin{verbatim}
+  template< typename Type > constexpr Type max( Type a, Type b ) { return a < b ? b : a; }
+
 \end{verbatim}
 \end{frame}
 
-\begin{frame}{std::vector::emplace\_back}
+\begin{frame}{better sizeof}
+  \begin{block}{}
+\begin{verbatim}
+template <typename T, size_t N>
+constexpr size_t size_of(T (\&)[N]) {
+    return N;
+}
 
+\end{verbatim}
+  \end{block}
 \end{frame}
 
+\subsection{constexpr vs const}
+\begin{frame}{optimization}
+  \begin{block}{}
+    \begin{itemize}
+    \item Const can't be used for optimization because of possible const\_cast
+    \item I'm not sure about that one
+    \end{itemize}
+  \end{block}
+\end{frame}
 
-\section{constexpr}
+\subsection{easier metaprogramming}
+\begin{frame}{factorial}
+  \begin{block}{}
+\begin{verbatim}
+template<unsigned T>
+struct Fact {
+    enum Enum {
+        VALUE = Fact<T-1>*T;
+    };
+};
+
+template<>
+struct Fact<1u> {
+    enum Enum {
+        VALUE = 1;
+    };
+};
+
+\end{verbatim}
+  \end{block}
+
+  \begin{block}{}
+\begin{verbatim}
+int fact(unsigned n) {
+    if (n==1) return 1;
+    return fact(n-1)*n;
+}
+
+\end{verbatim}
+  \end{block}
+\end{frame}
+
 \section{POD modifications}
 \section{multithreading}
 \section{alignment}
