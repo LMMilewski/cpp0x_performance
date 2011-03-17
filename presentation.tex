@@ -63,9 +63,9 @@
 \begin{frame}
   \begin{block}{rvalue reference}
     \begin{itemize}
-    \item T& - lvalue reference
-    \item T&& - rvalue reference
-    \item const T&&
+    \item T\& - lvalue reference
+    \item T\&\& - rvalue reference
+    \item const T\&\&
     \item binds to lvalues and rvalues
     \item binds to rvalue even if not const qualified
     \end{itemize}
@@ -108,9 +108,10 @@ class binder2nd
     ...
 public:
     ...
-    result_type operator()(const first_argument_type& x);
-    result_type operator()(      first_argument_type& x);
+    result_type operator()(const first_argument_type\& x);
+    result_type operator()(      first_argument_type\& x);
 };
+
 \end{verbatim}
 \begin{block}{}
   Unfortunately number of overloads grows exponentially with number of
@@ -119,6 +120,7 @@ public:
 \end{frame}
 
 \begin{frame}{forwarding arguments in C++0x}
+  \begin{block}{}
 \begin{verbatim}
 template <class Operation>
 class binder2nd
@@ -127,21 +129,26 @@ class binder2nd
     ...
 public:
     ...
-    result_type operator()(first_argument_type&& x);
+    result_type operator()(first_argument_type\&\& x);
 };
+
 \end{verbatim}
+  \end{block}
 \end{frame}
 
 \begin{frame}{move semantics}
+\begin{block}{}
 \begin{verbatim}
 template <class T>
 inline
-typename remove_reference<T>::type&&
-move(T&& t) {
-    return t;
+typename remove_reference<T>::type\&\&
+move(T\&\& t) {
+  return t;
 }
+
 \end{verbatim}
-\begin{block}
+\end{block}
+\begin{block}{}
   \begin{itemize}
   \item for rvalue reference move returns rvalue reference
   \item for lvalue reference move returns rvalue reference
@@ -197,7 +204,7 @@ move(T&& t) {
   \end{block}
 \end{frame}
 
-\begin{frame}{RVO & NRVO vs move}
+\begin{frame}{RVO \& NRVO vs move}
   see rvo.cpp
 \end{frame}
 
@@ -219,6 +226,7 @@ move(T&& t) {
 \end{frame}
 
 \begin{frame}{std::forward}
+  \begin{block}{}
 \begin{verbatim}
 template <class T>
 struct identity {
@@ -227,11 +235,13 @@ struct identity {
 
 template <class T>
 inline
-T&&
-forward(typename identity<T>::type&& t) {
+T\&\&
+forward(typename identity<T>::type\&\& t) {
     return t;
 }
+
 \end{verbatim}
+  \end{block}
 \end{frame}
 
 \begin{frame}{variadic templates and std::vector::emplace\_back}
@@ -242,7 +252,7 @@ forward(typename identity<T>::type&& t) {
 
 struct A {
 public:
-    explicit A(int, const std::string&) {
+    explicit A(int, const std::string\&) {
     }
 };
 
@@ -250,6 +260,7 @@ int main() {
     std::vector<A> v;
     v.emplace_back(5, "hello");
 }
+
 \end{verbatim}
   \end{block}
 \end{frame}
@@ -263,19 +274,20 @@ int main() {
 
 struct A {
 public:
-    explicit A(int x, const std::string& str) {
+    explicit A(int x, const std::string\& str) {
         std::cout << "A(" << x << ", " << str << ")\n";
     }
 };
 
 template <typename... Args>
-A create_a(Args&&... args) {
+A create_a(Args\&\&... args) {
     return A(std::forward<Args>(args)...);
 }
 
 int main() {
     A a = create_a(1, "hello");
 }
+
 \end{verbatim}
   \end{block}
 \end{frame}
@@ -304,7 +316,7 @@ int main() {
 \end{frame}
 
 \begin{frame}{why?}
-  \begin{block}
+  \begin{block}{}
     \begin{itemize}
     \item can use numeric\_limits<T>::max() as array size
     \item easier metaprogramming (i.e. fib function)
@@ -314,7 +326,7 @@ int main() {
 \end{frame}
 
 \begin{frame}{examples}
-  \begin{block}
+  \begin{block}{}
 \begin{verbatim}
 constexpr int square(int x); // OK: declaration
 constexpr int bufsz = 1024;  // OK: definition
@@ -337,6 +349,7 @@ int next(constexpr int x) {   // error: not for parameters
     return x + 1;
 }
 extern constexpr int memsz;   // error: not a definition
+
 \end{verbatim}
   \end{block}
 \end{frame}
@@ -370,14 +383,15 @@ extern constexpr int memsz;   // error: not a definition
   constexpr bool little_endian()
   {
     const static unsigned num = 0xAABBCCDD;
-    return reinterpret_cast<const unsigned char*> (&num)[0] == 0xDD;
+    return reinterpret_cast<const unsigned char*> (\&num)[0] == 0xDD;
   }
+
 \end{verbatim}
 An expression is a potential constant expression if it is a constant
 expression when all occurances of function parameters are replaced by
 arbitrary constant expressions of the appropriate type.
 
-However &num would be an adress
+However \&num would be an adress
   \end{block}
 \end{frame}
 
@@ -404,6 +418,7 @@ member invokes undefined behaviour
 \begin{frame}{max}
 \begin{verbatim}
   template< typename Type > constexpr Type max( Type a, Type b ) { return a < b ? b : a; }
+
 \end{verbatim}
 \end{frame}
 
@@ -411,9 +426,10 @@ member invokes undefined behaviour
   \begin{block}{}
 \begin{verbatim}
 template <typename T, size_t N>
-constexpr size_t size_of(T (&)[N]) {
+constexpr size_t size_of(T (\&)[N]) {
     return N;
 }
+
 \end{verbatim}
   \end{block}
 \end{frame}
@@ -445,6 +461,7 @@ struct Fact<1u> {
         VALUE = 1;
     };
 };
+
 \end{verbatim}
   \end{block}
 
@@ -454,6 +471,7 @@ int fact(unsigned n) {
     if (n==1) return 1;
     return fact(n-1)*n;
 }
+
 \end{verbatim}
   \end{block}
 \end{frame}
