@@ -287,6 +287,72 @@ int main() {
 
 \section{constexpr}
 \subsection{definition}
+\begin{frame}{c++0x 7.1.5}
+  \begin{block}{}
+    \begin{itemize}
+    \item applied to definition of an object, declaration of a
+      function or function template, or declaration of a static data
+      member of literal type
+    \item specialization can differ from template declaration with
+      respect to the constexpr specifier
+    \item function parameters can not be declared constexpr
+    \item constexpr functions/constructors are inline
+    \item call to constexpr function produces the same result as call
+      to an eqivalent non-constexpr function
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{examples}
+  \begin{block}
+\begin{verbatim}
+constexpr int square(int x); // OK: declaration
+constexpr int bufsz = 1024;  // OK: definition
+constexpr struct pixel {     // error: pixel is a type
+    int x;
+    int y;
+    constexpr pixel(int);         // OK: declaration
+};
+constexpr pixel::pixel(int a) // OK: definition
+    : x(square(a)), y(square(a))
+    { }
+constexpr pixel small(2);     // error: square not defined, so small(2)
+                              // not constant (5.19) so constexpr not satisfied
+
+constexpr int square(int x) { // OK: definition
+    return x * x;
+}
+constexpr pixel large(4);     // OK: square defined
+int next(constexpr int x) {   // error: not for parameters
+    return x + 1;
+}
+extern constexpr int memsz;   // error: not a definition
+\end{verbatim}
+  \end{block}
+\end{frame}
+
+\begin{frame}{constexpr constraints}
+  \begin{block}{function}
+    \begin{itemize}
+    \item not virtual
+    \item literal return type / reference to literal type
+    \item parameters of literal types / references to literal types
+    \item function body of form { return expression ; }
+    \item only conversions allowed in constant expressions
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{constructor}
+    \begin{itemize}
+    \item parameters of literal type / reference to literal type
+    \item no try block
+    \item every non-static data member and base class sub-object shall be initialized
+    \item every constructor involved in initializing shall be a constexpr constructor
+    \item all conversions should be allowed for constant expressions
+    \end{itemize}
+  \end{block}
+\end{frame}
+
 \subsection{limitations}
 \begin{frame}{endian check}
 \end{frame}
