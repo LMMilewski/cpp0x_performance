@@ -19,6 +19,13 @@
   \tableofcontents
 \end{frame}
 
+\begin{frame}{g++}
+  \begin{block}{version}
+    \$ g++ --version
+    g++ (GCC) 4.5.2
+  \end{block}
+\end{frame}
+
 \section{move semantics and perfect forwarding}
 \begin{frame}{rationale}
   \begin{block}{Why?}
@@ -477,6 +484,57 @@ int fact(unsigned n) {
 \end{frame}
 
 \section{POD modifications}
+\begin{frame}{why so important?}
+  \begin{itemize}
+  \item PODs are implemented to have object layouts that are compatible with
+    C.
+  \item You can use mem* functions family on those
+  \item Good for DOD
+  \item Not always faster due to compiler optimizations!
+  \item Knowing object layout it is a bit easier to serialize it
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{example}
+  \begin{block}{for loop VS memset}
+    \begin{itemize}
+    \item see pod\_memset\_looop.cpp
+    \item memset 1.529s
+    \item for loop 2.785s
+    \item with -O2 loop is executed only once, memset still 1.529s
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{definition}
+  \begin{block}{POD}
+    Trivial class/struct with standard layout
+  \end{block}
+
+  \begin{block}{trivial}
+    \begin{itemize}
+    \item Has no nonstatic data members of type non-POD class/struct/union (or array of such types)
+    \item Has a trivial default constructor. This may use the default constructor syntax (SomeConstructor() = default;).
+    \item Has a trivial copy constructor, which may use the default syntax.
+    \item Has a trivial copy assignment operator, which may use the default syntax.
+    \item Has a trivial destructor, which must not be virtual.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{the problem (?)}
+  \begin{block}
+\begin{verbatim}
+  struct {
+    public: int x;
+    public: int y;
+    public: int z;
+  };
+
+\end{verbatim}
+  \end{block}
+\end{frame}
+
 \section{multithreading}
 \section{alignment}
 \section{unique\_ptr}

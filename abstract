@@ -223,6 +223,3 @@ int fact(unsigned n) {
 ** memcpy
 * simpler multithreading
 http://www.devx.com/SpecialReports/Article/38883/1954
-* alignment
-* unique_ptr
-** will not allow moving with memmove() etc. (I think there was such proposal)
